@@ -20,6 +20,7 @@
 #include "../base/assert.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <chrono>
 #include <cstring>
 #include <cstdio>
@@ -55,8 +56,19 @@ template<class Clock, class Duration>
 std::string_view
 to_string_view_iso8601(const std::chrono::time_point<Clock, Duration> tp) noexcept
 {
-  auto result = to_string_view(tp, "%Y-%m-%dT%H:%M:%S%z:");
+  namespace chrono = std::chrono;
+  const auto tse = tp.time_since_epoch();
+  const auto sec = chrono::duration_cast<chrono::seconds>(tse);
+  const auto ms = chrono::duration_cast<chrono::milliseconds>(tse - sec);
+
+  auto result = to_string_view(tp, "%Y-%m-%dT%H:%M:%S.sss%z:");
   char* const buf = const_cast<char*>(result.data());
+  constexpr const std::size_t buf_offset{4+1+2+1+2+1+2+1+2+1+2+1}; // offset of sss
+  static_assert(buf_offset + 4 < detail::time_buf_size);
+  const char zone1st{buf[buf_offset + 3]};
+  std::snprintf(buf + buf_offset, 4, "%.3ld", ms.count());
+  assert(buf[buf_offset + 3] == '\0');
+  buf[buf_offset + 3] = zone1st;
   std::rotate(buf + result.size() - 3, buf + result.size() - 1, buf + result.size());
   return result;
 }
