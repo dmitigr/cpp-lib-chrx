@@ -39,6 +39,6 @@ set(dmitigr_libs_chrx_deps base)
 # ------------------------------------------------------------------------------
 
 if(DMITIGR_LIBS_TESTS)
-  set(dmitigr_chrx_tests base)
+  set(dmitigr_chrx_tests format)
   set(dmitigr_chrx_tests_target_link_libraries dmitigr_base)
 endif()
