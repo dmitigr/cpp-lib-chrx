@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <ctime>
 #include <string_view>
+#include <type_traits>
 
 namespace dmitigr::chrx {
 
@@ -66,7 +67,16 @@ to_string_view_iso8601(const std::chrono::time_point<Clock, Duration> tp) noexce
   constexpr const std::size_t buf_offset{4+1+2+1+2+1+2+1+2+1+2+1}; // offset of sss
   static_assert(buf_offset + 4 < detail::time_buf_size);
   const char zone1st{buf[buf_offset + 3]};
-  std::snprintf(buf + buf_offset, 4, "%.3ld", ms.count());
+  constexpr const char* const fmt = []
+  {
+    using Rep = typename decltype(ms)::rep;
+    if constexpr (std::is_same_v<Rep, long>) {
+      return "%.3ld";
+    } else {
+      return "%.3lld";
+    }
+  }();
+  std::snprintf(buf + buf_offset, 4, fmt, ms.count());
   assert(buf[buf_offset + 3] == '\0');
   buf[buf_offset + 3] = zone1st;
   std::rotate(buf + result.size() - 3, buf + result.size() - 1, buf + result.size());
@@ -89,8 +99,17 @@ to_string_view_us(const std::chrono::time_point<Clock, Duration> tp) noexcept
   auto result = to_string_view(tp, "%Y-%m-%dT%H:%M:%S");
   if (const auto dt_length = result.size()) {
     const auto max_rest_length = detail::time_buf_size - dt_length;
+    constexpr const char* const fmt = []
+    {
+      using Rep = typename decltype(us)::rep;
+      if constexpr (std::is_same_v<Rep, long>) {
+        return "%c%ld";
+      } else {
+        return "%c%lld";
+      }
+    }();
     const auto rest_length = std::snprintf(const_cast<char*>(result.data()) + dt_length,
-      max_rest_length, "%c%ld", '.', us.count());
+      max_rest_length, fmt, '.', us.count());
     DMITIGR_ASSERT(rest_length > 0 && static_cast<std::size_t>(rest_length) < max_rest_length);
     return {result.data(), dt_length + rest_length};
   } else
