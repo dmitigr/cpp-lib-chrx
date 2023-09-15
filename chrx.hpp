@@ -18,5 +18,6 @@
 #define DMITIGR_CHRX_CHRX_HPP
 
 #include "format.hpp"
+#include "version.hpp"
 
 #endif  // DMITIGR_CHRX_CHRX_HPP
