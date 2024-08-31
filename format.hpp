@@ -32,6 +32,15 @@ namespace dmitigr::chrx {
 
 namespace detail {
 constexpr const std::size_t time_buf_size{128};
+
+inline auto loctime(const time_t* timer, struct tm* buf) noexcept
+{
+#ifdef _WIN32
+  return !localtime_s(buf, timer) ? buf : nullptr;
+#else
+  return localtime_r(timer, buf);
+#endif
+}
 } // namespace detail
 
 /// @returns The formatted string representation of the given timepoint.
@@ -46,7 +55,7 @@ to_string_view(const std::chrono::time_point<Clock, Duration> tp,
   static thread_local char buf[detail::time_buf_size];
   tzset();
   if (const auto len = std::strftime(buf,
-      sizeof(buf), format, localtime_r(&tp_time_t, &tm_val)))
+      sizeof(buf), format, detail::loctime(&tp_time_t, &tm_val)))
     return {buf, len};
   buf[0] = '\0';
   return {buf, 0};
